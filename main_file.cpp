@@ -42,6 +42,8 @@ float aspectRatio = 1;
 
 ShaderProgram* sp;
 
+glm::vec4* lights;
+glm::vec4* lightsColors;
 
 //Odkomentuj, żeby rysować kostkę
 //float* vertices = myCubeVertices;
@@ -123,6 +125,14 @@ void initOpenGLProgram(GLFWwindow* window) {
 	tex0 = readTexture("metal.png");
 	tex1 = readTexture("metal_spec.png");
 
+	lights = new glm::vec4[2];
+	lightsColors = new glm::vec4[2];
+
+	lights[0] = glm::vec4(3.0f, 0.0f, -6.0f, 1.0f);
+	lights[1] = glm::vec4(-3.0f, 0.0f, -6.0f, 1.0f);
+
+	lightsColors[0] = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	lightsColors[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
 	engineModel.loadModel("engine.obj");
 }
@@ -160,7 +170,9 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 	glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
 	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
 	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
-	glUniform4f(sp->u("lp"), 0, 0, -6, 1);
+	//glUniform4f(sp->u("lp"), 0, 0, -6, 1);
+	glUniform4fv(sp->u("lights"), 2, glm::value_ptr(lights[0]));
+	glUniform4fv(sp->u("lightsColors"), 2, glm::value_ptr(lightsColors[0]));
 
 	glUniform1i(sp->u("textureMap0"), 0); //Ustaw teksturę nr 0 jako aktywną
 	glActiveTexture(GL_TEXTURE0);
@@ -190,11 +202,15 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 	//glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu color
 	//glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu normal
 
-	engineModel.drawMeshByName("block", sp);
+	//engineModel.drawMeshByName("block", sp);
 	engineModel.drawMeshByName("piston_1", sp);
-	engineModel.drawMeshByName("piston_4", sp);
-	engineModel.drawMeshByName("rod_piston_4", sp);
-
+	engineModel.drawMeshByName("rod_piston_4.003", sp);
+	engineModel.drawMeshByName("cyl1_int_vlv2", sp);
+	engineModel.drawMeshByName("cyl1_int_vlv1", sp);
+	engineModel.drawMeshByName("cyl1_exh_vlv2", sp);
+	engineModel.drawMeshByName("cyl1_vlv_exh1", sp);
+	engineModel.drawMeshByName("crank_1", sp);
+	engineModel.drawMeshByName("crank_1_bearing", sp);
 
 	//engineModel.drawMeshByName("head", sp);
 	glDisableVertexAttribArray(sp->a("texCoord0"));  //Wyłącz przesyłanie danych do atrybutu texCoord0
