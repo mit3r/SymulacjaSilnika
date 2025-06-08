@@ -10,7 +10,8 @@ public:
 	Model();
 	Model(const std::string& path);
 	void loadModel(const std::string& path);
-	void drawMeshByName(const std::string& name, ShaderProgram* sp) const;
+	Mesh* getMeshByName(const std::string& name);
+	void drawMeshByName(const std::string& name, ShaderProgram* sp);
 
 private:
 	std::vector<Mesh> meshes;

@@ -1,19 +1,18 @@
 #include "Model.h"
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
+
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+#include <assimp/Importer.hpp>
 #include <iostream>
 
 Model::Model() {}
 
 Model::Model(const std::string& path) {
 	loadModel(path);
-
-
 }
 
-
-void Model::drawMeshByName(const std::string& name, ShaderProgram* sp) const {
+void Model::drawMeshByName(const std::string& name, ShaderProgram* sp) {
 	auto it = meshNameToIndex.find(name);
 	if (it != meshNameToIndex.end()) {
 		meshes[it->second].draw(sp);
@@ -46,6 +45,15 @@ void Model::loadModel(const std::string& path) {
 	}
 }
 
+Mesh* Model::getMeshByName(const std::string& name)
+{
+	auto it = meshNameToIndex.find(name);
+	if (it != meshNameToIndex.end())
+		return &meshes[it->second];
+	else
+		return nullptr;
+}
+
 void Model::processNode(aiNode* node, const aiScene* scene) {
 	for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
@@ -69,12 +77,9 @@ Mesh Model::processMesh(aiMesh* mesh) {
 			mesh->mVertices[i].x,
 			mesh->mVertices[i].y,
 			mesh->mVertices[i].z,
-			1.0f
-		};
+			1.0f };
 
-		vertex.normal = mesh->HasNormals() ?
-			glm::vec4(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z, 0.0f) :
-			glm::vec4(0.0f);
+		vertex.normal = mesh->HasNormals() ? glm::vec4(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z, 0.0f) : glm::vec4(0.0f);
 
 		vertices.push_back(vertex);
 	}
@@ -86,7 +91,7 @@ Mesh Model::processMesh(aiMesh* mesh) {
 	}
 
 	std::string meshName = mesh->mName.C_Str();
-	if (meshName.empty()) meshName = "mesh_" + std::to_string(rand()); // fallback name
+	if (meshName.empty()) meshName = "mesh_" + std::to_string(rand());  // fallback name
 
 	return Mesh(vertices, indices, meshName);
 }

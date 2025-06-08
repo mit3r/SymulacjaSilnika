@@ -1,8 +1,8 @@
 #version 330
 
 
-uniform sampler2D textureMap0;
-uniform sampler2D textureMap1;
+uniform sampler2D textureDiffuse;
+uniform sampler2D textureReflect;
 
 
 out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
@@ -17,9 +17,10 @@ in vec4 v;
 
 void main(void) {
 
-	vec4 kd = texture(textureMap0,iTexCoord0);
-	// vec4 ks = kd/3; //kolor odbicia
-	vec4 ks = texture(textureMap1,iTexCoord0); //kolor odbicia
+	vec4 kd = texture(textureDiffuse,iTexCoord0); // kolor powierzchni
+	// vec4 kd = iC; // kolor powierzchni
+	// vec4 ks = vec4(0.5,0.5,0.5,1);
+	vec4 ks = texture(textureReflect,iTexCoord0); // kolor refleksów
 
 	vec4 mn = normalize(n);
 	vec4 mv = normalize(v);
