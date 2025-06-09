@@ -1,7 +1,6 @@
 #include "Mesh.h"
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::string& name)
-{
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::string& name) {
 	this->name = name;
 	this->vertexCount = vertices.size();
 	this->verticesData = new float[vertexCount * 4];
@@ -25,25 +24,71 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>&
 	for (size_t i = 0; i < indexesCount; ++i) {
 		this->indexesData[i] = indices[i];
 	}
-
 }
 
-void Mesh::draw(ShaderProgram* sp) const {
+void Mesh::setMatrixS(glm::mat4 matrix)
+{
+	this->S = matrix;
+}
 
-	glEnableVertexAttribArray(sp->a("vertex"));  //W³¹cz przesy³anie danych do atrybutu vertex
+void Mesh::setMatrixM(glm::mat4 matrix)
+{
+	this->M = matrix * S;
+}
+
+void Mesh::setMatrixP(glm::mat4 matrix)
+{
+	this->P = matrix;
+}
+
+void Mesh::setMatrices(glm::mat4 _M, glm::mat4 _V, glm::mat4 _P)
+{
+	this->M = _M;
+	this->V = _V;
+	this->P = _P;
+}
+
+void Mesh::setMatrixV(glm::mat4 matrix)
+{
+	this->V = matrix;
+}
+
+void Mesh::setTextures(GLuint diffuse, GLuint reflect)
+{
+	this->texDiffuse = diffuse;
+	this->texReflect = reflect;
+}
+
+
+void Mesh::draw(ShaderProgram* sp) {
+	glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(this->P));
+	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(this->V));
+	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(this->M));
+
+	glUniform1i(sp->u("textureDiffuse"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texDiffuse);
+
+	glUniform1i(sp->u("textureReflect"), 1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texReflect);
+
+	glEnableVertexAttribArray(sp->a("vertex"));  // WÅ‚Ä…cz przesyÅ‚anie danych do atrybutu vertex
 	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, this->verticesData);
 
-	glEnableVertexAttribArray(sp->a("normal"));  //W³¹cz przesy³anie danych do atrybutu normal
+	glEnableVertexAttribArray(sp->a("normal"));  // WÅ‚Ä…cz przesyÅ‚anie danych do atrybutu normal
 	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, this->normalsData);
 
+	glEnableVertexAttribArray(sp->a("texCoord0"));  // WÅ‚Ä…cz przesyÅ‚anie danych do atrybutu texCoord0
+	glVertexAttribPointer(sp->a("texCoord0"), 4, GL_FLOAT, false, 0, this->verticesData);
+
 	glDrawElements(GL_TRIANGLES, this->indexesCount, GL_UNSIGNED_INT, this->indexesData);
-	//glDrawArrays(GL_TRIANGLES, 0, this->vertexCount); //Narysuj obiekt
+	// glDrawArrays(GL_TRIANGLES, 0, this->vertexCount); //Narysuj obiekt
 
-	glDisableVertexAttribArray(sp->a("vertex"));  //Wy³¹cz przesy³anie danych do atrybutu vertex
-	glDisableVertexAttribArray(sp->a("normal"));  //Wy³¹cz przesy³anie danych do atrybutu normal
-
+	glDisableVertexAttribArray(sp->a("vertex"));  // WyÅ‚Ä…cz przesyÅ‚anie danych do atrybutu vertex
+	glDisableVertexAttribArray(sp->a("normal"));  // WyÅ‚Ä…cz przesyÅ‚anie danych do atrybutu normal
 }
 
-const std::string& Mesh::getName() const {
+const std::string& Mesh::getName() {
 	return name;
 }
