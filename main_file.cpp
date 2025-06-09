@@ -37,16 +37,19 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "myTeapot.h"
 #include "shaderprogram.h"
 
-float speed_rot_x = 0;
-float speed_rot_y = 0;
-float speed_trans_x = 0;
-float speed_trans_y = 0;
-float aspectRatio = 1;
+float speed_rot_x = 0.f;
+float speed_rot_y = 0.f;
+float speed_trans_x = 0.f;
+float speed_trans_y = 0.f;
+float aspectRatio = 1.f;
+float timeSpeed = 0.f;
 
 ShaderProgram* sp;
 
 glm::vec4* lights;
 glm::vec4* lightsColors;
+
+EngineObject engine;
 
 // Odkomentuj, żeby rysować kostkę
 // float* vertices = myCubeVertices;
@@ -64,8 +67,6 @@ int vertexCount = myTeapotVertexCount;
 
 GLuint tex0;
 GLuint tex1;  // uchwyt na teksturę
-
-EngineObject engine;
 
 GLuint readTexture(const char* filename) {
 	GLuint tex;
@@ -97,10 +98,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		if (key == GLFW_KEY_UP) speed_rot_y = PI;
 		if (key == GLFW_KEY_DOWN) speed_rot_y = -PI;
 
-		if (key == GLFW_KEY_W) speed_trans_x = -1;
-		if (key == GLFW_KEY_S) speed_trans_x = 1;
+		if (key == GLFW_KEY_W) speed_trans_x = -8;
+		if (key == GLFW_KEY_S) speed_trans_x = 8;
 		if (key == GLFW_KEY_A) speed_trans_y = 1;
 		if (key == GLFW_KEY_D) speed_trans_y = -1;
+
+		if (key == GLFW_KEY_J) timeSpeed -= PI;
+		if (key == GLFW_KEY_K) timeSpeed += PI;
 	}
 	if (action == GLFW_RELEASE) {
 		if (key == GLFW_KEY_LEFT) speed_rot_x = 0;
@@ -112,6 +116,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		if (key == GLFW_KEY_S) speed_trans_x = 0;
 		if (key == GLFW_KEY_A) speed_trans_y = 0;
 		if (key == GLFW_KEY_D) speed_trans_y = 0;
+
+		if (key == GLFW_KEY_J) timeSpeed = 0;
+		if (key == GLFW_KEY_K) timeSpeed = 0;
 	}
 }
 
@@ -145,14 +152,19 @@ void initOpenGLProgram(GLFWwindow* window) {
 	lightsColors[1] = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
 	glm::mat4 V = glm::lookAt(
-		glm::vec3(0, 0, -20),
+		glm::vec3(0, 0, -40),
 		glm::vec3(0, 0, 0),
 		glm::vec3(0.0f, 1.0f, 0.0f));  // Wylicz macierz widoku
 
 	glm::mat4 P = glm::perspective(50.0f * PI / 180.0f, aspectRatio, 0.01f, 50.0f);  // Wylicz macierz rzutowania
 
+	engine.setup(V, P);  // Inicjalizacja silnika
 
-	engine.getMesh(rod_piston_4_003)->setMatrixS(glm::translate(glm::mat4(1.f), glm::vec3(-1.298, 1.11, 0)));
+	for (Part p : parts) {
+		engine.getMesh(p.id)->setTextures(tex0, tex1);
+	}
+
+	/*engine.getMesh(rod_piston_4_003)->setMatrixS(glm::translate(glm::mat4(1.f), glm::vec3(-1.298, 1.11, 0)));
 
 	engine.getMesh(piston_1)->setMatrixS(glm::translate(glm::mat4(1.f), glm::vec3(0, -2.6, 0)));
 
@@ -177,7 +189,7 @@ void initOpenGLProgram(GLFWwindow* window) {
 		mesh->setMatrixV(V);
 		mesh->setMatrixP(P);
 		mesh->setTextures(tex0, tex1);
-	}
+	}*/
 
 	sp->use();  // Aktywacja programu cieniującego
 }
@@ -190,71 +202,45 @@ void freeOpenGLProgram(GLFWwindow* window) {
 }
 
 // Procedura rysująca zawartość sceny
-void drawScene(GLFWwindow* window, float angle_const, float rotX, float rotY, float x, float y) {
+void drawScene(GLFWwindow* window, float angle_const, float rotX, float rotY, float x, float y, float t) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUniform4fv(sp->u("lights"), 2, glm::value_ptr(lights[0]));
 	glUniform4fv(sp->u("lightsColors"), 2, glm::value_ptr(lightsColors[0]));
 
-
 	glm::mat4 M = glm::mat4(1.0f);
 	M = glm::rotate(M, rotY, glm::vec3(1, 0, 0));
 	M = glm::rotate(M, rotX, glm::vec3(0, 1, 0));
 
+	// Draw pistons
+	glm::mat4 M_piston = glm::mat4(M);
 
-	glm::mat4 ALIGN = glm::mat4(1.0f);
-	ALIGN = glm::rotate(ALIGN, glm::radians(-110.f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ALIGN = glm::translate(ALIGN, glm::vec3(1.577, 0.596, 0.f));
-
-	glm::mat4 ROT = glm::rotate(glm::mat4(1), angle_const, glm::vec3(0.0f, 0.0f, 1.0f));
-
-	glm::mat4 crank = glm::mat4(M * ALIGN * ROT);
-	glm::mat4 crank2rod = glm::translate(glm::mat4(1), glm::vec3(1.35, 0.58, 0));
+	M_piston = glm::translate(M_piston, glm::vec3(0, -1.6, 0.f));
+	M_piston = glm::rotate(M_piston, glm::radians(70.f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 
-	float i = 4.01;
-	float a = 1.47;
+	//engine.getMesh(rod_piston_4_002)->setMatrixS(glm::translate(glm::mat4(1.0), glm::vec3(x, y, 0)));
+	glm::mat4 M_piston0 = M_piston * glm::rotate(glm::mat4(1.0f), glm::radians(-180.f), glm::vec3(0.0f, 0.0f, 1.0f));
+	engine.drawPiston(angle_const, M_piston0, sp, 0, x, y);
 
-	float t = angle_const;
-	float k = atan2(
-		glm::sqrt(i * i - a * a * glm::sin(t) * glm::sin(t)), -a * glm::sin(t));
+	glm::mat4 M_piston1 = M_piston * glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.0f, 0.0f, 1.0f));
+	engine.drawPiston(angle_const + PI, M_piston1, sp, 1, x, y);
 
-	glm::mat4 work = glm::rotate(glm::mat4(1.0), k, glm::vec3(0, 0, 1));
+	glm::mat4 M_piston2 = M_piston * glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.0f, 0.0f, 1.0f));
+	engine.drawPiston(angle_const + PI, M_piston2, sp, 2, x, y);
 
-	glm::mat4 rod = glm::mat4(crank * crank2rod * glm::inverse(ROT) * work);
-	glm::mat4 rod2Piston = glm::translate(glm::mat4(1.0), glm::vec3(-1.494, 3.777, 0));
-	glm::mat4 pistonAngle = glm::rotate(glm::mat4(1.0), glm::radians(110.f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 M_piston3 = M_piston * glm::rotate(glm::mat4(1.0f), glm::radians(-180.f), glm::vec3(0.0f, 0.0f, 1.0f));
+	engine.drawPiston(angle_const, M_piston3, sp, 3, x, y);
 
 
-	glm::mat4 piston = glm::mat4(rod * rod2Piston * glm::inverse(work) * pistonAngle);
-
-	engine.getMesh(piston_1)->setMatrixM(piston);
-	engine.getMesh(piston_1)->draw(sp);
-
-	engine.getMesh(rod_piston_4_003)->setMatrixM(rod);
-	engine.getMesh(rod_piston_4_003)->draw(sp);
-	engine.getMesh(cyl1_int_vlv2)->setMatrixM(M);
-	engine.getMesh(cyl1_int_vlv2)->draw(sp);
-	engine.getMesh(cyl1_int_vlv1)->setMatrixM(M);
-	engine.getMesh(cyl1_int_vlv1)->draw(sp);
-	engine.getMesh(cyl1_exh_vlv2)->setMatrixM(M);
-	engine.getMesh(cyl1_exh_vlv2)->draw(sp);
-	engine.getMesh(cyl1_vlv_exh1)->setMatrixM(M);
-	engine.getMesh(cyl1_vlv_exh1)->draw(sp);
-	engine.getMesh(crank_1)->setMatrixM(crank);
-	engine.getMesh(crank_1)->draw(sp);
-	engine.getMesh(crank_1_bearing)->setMatrixM(crank);
-	engine.getMesh(crank_1_bearing)->draw(sp);
-
-	//engine.getMesh(head)->setMatrixM(M);
-	//engine.getMesh(head)->draw(sp);
+	// Draw valves
+	//engine.drawValves(angle_const, M, sp, 0);  // Rysowanie zaworów
 
 	engine.getMesh(block)->setMatrixM(M);
 	engine.getMesh(block)->draw(sp);
 
 
-	// engineModel.drawMeshByName("head", sp);
 	glDisableVertexAttribArray(sp->a("texCoord0"));  // Wyłącz przesyłanie danych do atrybutu texCoord0
 
 	glfwSwapBuffers(window);  // Przerzuć tylny bufor na przedni
@@ -270,7 +256,7 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	window = glfwCreateWindow(500, 500, "OpenGL", NULL, NULL);  // Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
+	window = glfwCreateWindow(1000, 1000, "OpenGL", NULL, NULL);  // Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
 
 	if (!window)  // Jeżeli okna nie udało się utworzyć, to zamknij program
 	{
@@ -294,6 +280,7 @@ int main(void) {
 	float rotY = 0;
 	float transX = 0;
 	float transY = 0;
+	float t = 0;
 	float angle_const = 0;
 	glfwSetTime(0);                         // Zeruj timer
 	while (!glfwWindowShouldClose(window))  // Tak długo jak okno nie powinno zostać zamknięte
@@ -303,10 +290,11 @@ int main(void) {
 		rotY += speed_rot_y * glfwGetTime();
 		transX += speed_trans_x * glfwGetTime();
 		transY += speed_trans_y * glfwGetTime();
+		t += timeSpeed * glfwGetTime();
 
 		printf("x: %lf, y: %lf, \n", transX, transY);
 		glfwSetTime(0);                                              // Zeruj timer
-		drawScene(window, angle_const, rotX, rotY, transX, transY);  // Wykonaj procedurę rysującą
+		drawScene(window, angle_const, rotX, rotY, transX, transY, t);  // Wykonaj procedurę rysującą
 		glfwPollEvents();                                            // Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
 	}
 
